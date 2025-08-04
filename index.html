@@ -1,1 +1,397 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSMOP Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom animation for fading in new questions */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        /* Hide arrows from number input */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4 sm:p-6">
+
+    <div class="text-center mb-6">
+        <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">Forms of Communication Quiz</h1>
+        <h2 id="quiz-subtitle" class="text-md sm:text-lg text-gray-600 mt-2"></h2>
+    </div>
+
+    <main id="quiz-container" class="bg-white w-full max-w-3xl rounded-2xl shadow-lg p-6 sm:p-8 transition-all duration-300">
+        <!-- Quiz Header: Score, Navigation, Progress -->
+        <div id="quiz-header" class="mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <p class="text-lg font-semibold">Score: <span id="score" class="text-indigo-600">0</span></p>
+                <button id="reset-score-btn" class="text-sm text-gray-500 hover:text-indigo-600 transition-colors">Reset Score</button>
+            </div>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                <p class="text-gray-600 font-medium">Question <span id="question-number">1</span> of <span id="total-questions"></span></p>
+                <div class="flex items-center gap-2">
+                    <label for="jump-input" class="text-gray-600">Jump to:</label>
+                    <input type="number" id="jump-input" class="w-16 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-1.5 text-center">
+                    <button id="jump-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1.5 px-4 rounded-md transition-colors">Go</button>
+                </div>
+            </div>
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Question Area -->
+        <div id="question-area">
+            <h2 id="question-text" class="text-xl font-semibold text-gray-800 mb-6 min-h-[80px]"></h2>
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <!-- Options will be inserted here by JavaScript -->
+            </div>
+            <p id="feedback-message" class="text-center font-medium min-h-[24px] mb-4"></p>
+            <div id="navigation-buttons" class="flex justify-between items-center mt-6">
+                <button id="prev-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed">← Previous</button>
+                <div id="next-btn-container" class="hidden">
+                    <button id="next-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">Next →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Screen -->
+        <div id="result-screen" class="hidden text-center py-8">
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">Quiz Completed!</h2>
+            <p id="final-score" class="text-xl text-gray-600 mb-8">Your final score is 0 out of 0.</p>
+            <button id="restart-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg transition-colors text-lg">Restart Quiz</button>
+        </div>
+    </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- QUIZ DATA ---
+    // Extracted from the provided CSMOP document.
+    const quizData = [
+        {
+            question: "Which form of communication is used for corresponding with State Governments, public bodies, and members of the public generally?",
+            options: ["Office Memorandum", "Demi-official letter", "Letter", "Order"],
+            answer: "Letter"
+        },
+        {
+            question: "What type of communication is used for inviting the personal attention of another Government officer on an issue?",
+            options: ["Office Order", "Demi-official letter", "Notification", "Resolution"],
+            answer: "Demi-official letter"
+        },
+        {
+            question: "Which form is generally used for corresponding with other Departments or for calling for/conveying information to employees?",
+            options: ["Letter", "Office Memorandum", "Press Communiqué", "Inter-departmental note"],
+            answer: "Office Memorandum"
+        },
+        {
+            question: "For what purpose is an Inter-departmental note (formerly U.O. Note) generally employed?",
+            options: ["Issuing instructions for internal administration", "Making public announcements of policy", "Obtaining advice or views from other Departments", "Notifying appointments of gazetted officers"],
+            answer: "Obtaining advice or views from other Departments"
+        },
+        {
+            question: "Which document is normally used for issuing instructions meant for internal administration, like grant of leave or distribution of work?",
+            options: ["Order", "Office Order", "Resolution", "Notification"],
+            answer: "Office Order"
+        },
+        {
+            question: "An 'Order' is typically used for which of the following purposes?",
+            options: ["Issuing financial sanctions and communicating disciplinary cases", "Corresponding with Members of Parliament", "Announcing a new government policy to the public", "Returning a receipt in original to the sender"],
+            answer: "Issuing financial sanctions and communicating disciplinary cases"
+        },
+        {
+            question: "What form of communication is mostly used for notifying the promulgation of statutory rules and the appointment of gazetted officers in the Gazette of India?",
+            options: ["Resolution", "Press Note", "Notification", "Letter"],
+            answer: "Notification"
+        },
+        {
+            question: "When the government wants to make a public announcement of a major policy decision, such as appointing a commission of enquiry, which form is used?",
+            options: ["Office Order", "Endorsement", "Resolution", "Demi-official letter"],
+            answer: "Resolution"
+        },
+        {
+            question: "What is the key difference between a Press Communiqué and a Press Note?",
+            options: ["A Press Note is more formal", "A Press Communiqué is expected to be reproduced intact by the press", "A Press Communiqué is only for internal use", "A Press Note is published in the Gazette of India"],
+            answer: "A Press Communiqué is expected to be reproduced intact by the press"
+        },
+        {
+            question: "When is an 'Endorsement' form of communication used?",
+            options: ["For all communications to State Governments", "When a receipt is returned in original or forwarded to another office", "For making public announcements of policy", "For issuing instructions for internal administration"],
+            answer: "When a receipt is returned in original or forwarded to another office"
+        },
+        {
+            question: "Under the Single File System (SFS), where should the noting by the Secretariat on an NSO file typically start?",
+            options: ["On the same page as the NSO noting", "In a separate 'duplicate' file always", "On a new page", "It should be sent as a separate OM"],
+            answer: "On a new page"
+        },
+        {
+            question: "Communications received from Members of Parliament should be acknowledged within what time frame?",
+            options: ["30 days", "7 days", "45 days", "15 days"],
+            answer: "15 days"
+        },
+        {
+            question: "What is the minimum officer level at which replies are normally sent to Members of Parliament?",
+            options: ["Section Officer", "Assistant Section Officer", "Under Secretary", "Deputy Secretary"],
+            answer: "Under Secretary"
+        },
+        {
+            question: "All orders and instruments made in the name of the President must be signed by an officer of what minimum rank?",
+            options: ["Section Officer", "Director", "Under Secretary", "Joint Secretary"],
+            answer: "Under Secretary"
+        },
+        {
+            question: "Correspondence with Foreign Governments and their Missions in India should normally be routed through which Ministry?",
+            options: ["Ministry of Home Affairs", "Ministry of Finance", "Prime Minister's Office", "Ministry of External Affairs"],
+            answer: "Ministry of External Affairs"
+        }
+    ];
+
+    // --- DOM ELEMENT SELECTION ---
+    const quizContainer = document.getElementById('quiz-container');
+    const quizHeader = document.getElementById('quiz-header');
+    const questionArea = document.getElementById('question-area');
+    const resultScreen = document.getElementById('result-screen');
+
+    const scoreEl = document.getElementById('score');
+    const questionNumberEl = document.getElementById('question-number');
+    const totalQuestionsEl = document.getElementById('total-questions');
+    const quizSubtitleEl = document.getElementById('quiz-subtitle');
+    const progressBar = document.getElementById('progress-bar');
+    
+    const questionTextEl = document.getElementById('question-text');
+    const optionsContainer = document.getElementById('options-container');
+    const feedbackMessageEl = document.getElementById('feedback-message');
+    
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const nextBtnContainer = document.getElementById('next-btn-container');
+    const restartBtn = document.getElementById('restart-btn');
+    const resetScoreBtn = document.getElementById('reset-score-btn');
+    
+    const jumpInput = document.getElementById('jump-input');
+    const jumpBtn = document.getElementById('jump-btn');
+    
+    const finalScoreEl = document.getElementById('final-score');
+
+    // --- QUIZ STATE VARIABLES ---
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let userAnswers = new Array(quizData.length).fill(null); // To store user's selections
+
+    // --- INITIALIZATION ---
+    function startQuiz() {
+        currentQuestionIndex = 0;
+        score = 0;
+        userAnswers.fill(null);
+        totalQuestionsEl.textContent = quizData.length;
+        quizSubtitleEl.textContent = `Complete ${quizData.length} Questions - Exam Preparation Tool`;
+        jumpInput.max = quizData.length;
+        jumpInput.min = 1;
+        
+        // Show quiz and hide results
+        quizContainer.style.display = 'block';
+        quizHeader.style.display = 'block';
+        questionArea.style.display = 'block';
+        resultScreen.classList.add('hidden');
+
+        loadQuestion(currentQuestionIndex);
+        updateScoreDisplay();
+    }
+
+    // --- CORE FUNCTIONS ---
+    function loadQuestion(index) {
+        // Apply fade-in animation
+        questionArea.classList.remove('fade-in');
+        void questionArea.offsetWidth; // Trigger reflow
+        questionArea.classList.add('fade-in');
+
+        const question = quizData[index];
+        questionTextEl.textContent = question.question;
+        optionsContainer.innerHTML = '';
+        feedbackMessageEl.textContent = '';
+        nextBtnContainer.classList.add('hidden');
+
+        // Create option buttons
+        question.options.forEach(optionText => {
+            const button = document.createElement('button');
+            button.textContent = optionText;
+            button.classList.add('w-full', 'text-left', 'p-4', 'border', 'border-gray-300', 'rounded-lg', 'hover:bg-indigo-50', 'hover:shadow-md', 'transition-all', 'duration-200');
+            button.addEventListener('click', () => selectAnswer(button, optionText));
+            optionsContainer.appendChild(button);
+        });
+
+        updateProgress(index);
+        updateNavigationButtons(index);
+        restoreAnswerState(index);
+    }
+
+    function selectAnswer(selectedButton, selectedOption) {
+        // Disable all option buttons after a selection
+        Array.from(optionsContainer.children).forEach(btn => {
+            btn.disabled = true;
+            btn.classList.add('cursor-not-allowed');
+        });
+
+        const question = quizData[currentQuestionIndex];
+        const isCorrect = selectedOption === question.answer;
+        
+        userAnswers[currentQuestionIndex] = { selected: selectedOption, correct: isCorrect };
+
+        if (isCorrect) {
+            score++;
+            selectedButton.classList.remove('border-gray-300', 'hover:bg-indigo-50');
+            selectedButton.classList.add('bg-green-500', 'text-white', 'border-green-500');
+            feedbackMessageEl.textContent = "Correct!";
+            feedbackMessageEl.classList.add('text-green-600');
+            feedbackMessageEl.classList.remove('text-red-600');
+        } else {
+            selectedButton.classList.remove('border-gray-300', 'hover:bg-indigo-50');
+            selectedButton.classList.add('bg-red-500', 'text-white', 'border-red-500');
+            
+            // Highlight the correct answer
+            const correctButton = Array.from(optionsContainer.children).find(btn => btn.textContent === question.answer);
+            if (correctButton) {
+                correctButton.classList.remove('border-gray-300', 'hover:bg-indigo-50');
+                correctButton.classList.add('bg-green-500', 'text-white', 'border-green-500');
+            }
+            
+            const correctOptionLetter = String.fromCharCode(65 + question.options.indexOf(question.answer));
+            feedbackMessageEl.textContent = `Wrong! The correct answer is ${correctOptionLetter}: ${question.answer}`;
+            feedbackMessageEl.classList.add('text-red-600');
+            feedbackMessageEl.classList.remove('text-green-600');
+        }
+
+        updateScoreDisplay();
+        nextBtnContainer.classList.remove('hidden');
+    }
+
+    function restoreAnswerState(index) {
+        const previousAnswer = userAnswers[index];
+        if (previousAnswer) {
+            const question = quizData[index];
+            const optionButtons = Array.from(optionsContainer.children);
+            
+            optionButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('cursor-not-allowed');
+                
+                if (btn.textContent === question.answer) {
+                     btn.classList.remove('border-gray-300', 'hover:bg-indigo-50');
+                     btn.classList.add('bg-green-500', 'text-white', 'border-green-500');
+                }
+                if (btn.textContent === previousAnswer.selected && !previousAnswer.correct) {
+                    btn.classList.remove('border-gray-300', 'hover:bg-indigo-50');
+                    btn.classList.add('bg-red-500', 'text-white', 'border-red-500');
+                }
+            });
+
+            if(previousAnswer.correct) {
+                feedbackMessageEl.textContent = "Correct!";
+                feedbackMessageEl.classList.add('text-green-600');
+                feedbackMessageEl.classList.remove('text-red-600');
+            } else {
+                const correctOptionLetter = String.fromCharCode(65 + question.options.indexOf(question.answer));
+                feedbackMessageEl.textContent = `Wrong! The correct answer is ${correctOptionLetter}: ${question.answer}`;
+                feedbackMessageEl.classList.add('text-red-600');
+                feedbackMessageEl.classList.remove('text-green-600');
+            }
+            nextBtnContainer.classList.remove('hidden');
+        }
+    }
+
+    function showResults() {
+        quizHeader.style.display = 'none';
+        questionArea.style.display = 'none';
+        resultScreen.classList.remove('hidden');
+        finalScoreEl.textContent = `Your final score is ${score} out of ${quizData.length}.`;
+    }
+
+    // --- UI UPDATE FUNCTIONS ---
+    function updateProgress(index) {
+        const progressPercentage = ((index + 1) / quizData.length) * 100;
+        progressBar.style.width = `${progressPercentage}%`;
+        questionNumberEl.textContent = index + 1;
+    }
+
+    function updateNavigationButtons(index) {
+        prevBtn.disabled = index === 0;
+        if (index === quizData.length - 1) {
+            nextBtn.textContent = 'Finish';
+        } else {
+            nextBtn.textContent = 'Next →';
+        }
+    }
+    
+    function updateScoreDisplay() {
+        scoreEl.textContent = score;
+    }
+
+    // --- EVENT LISTENERS ---
+    nextBtn.addEventListener('click', () => {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < quizData.length) {
+            loadQuestion(currentQuestionIndex);
+        } else {
+            showResults();
+        }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            loadQuestion(currentQuestionIndex);
+        }
+    });
+
+    restartBtn.addEventListener('click', startQuiz);
+    
+    resetScoreBtn.addEventListener('click', () => {
+        if (confirm("Are you sure you want to reset your score? This action cannot be undone.")) {
+            score = 0;
+            updateScoreDisplay();
+        }
+    });
+
+    jumpBtn.addEventListener('click', handleJump);
+    jumpInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            handleJump();
+        }
+    });
+    
+    function handleJump() {
+        const questionNum = parseInt(jumpInput.value);
+        if (questionNum >= 1 && questionNum <= quizData.length) {
+            currentQuestionIndex = questionNum - 1;
+            loadQuestion(currentQuestionIndex);
+            jumpInput.value = ''; // Clear input after jump
+        } else {
+            alert(`Please enter a number between 1 and ${quizData.length}.`);
+        }
+    }
+
+    // --- START THE QUIZ ---
+    startQuiz();
+});
+</script>
+
+</body>
+</html>
